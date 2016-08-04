@@ -5,53 +5,32 @@
     android:layout_height="fill_parent"
     tools:context="com.android.mycamera.cameraapplication.MainActivity">
 
-
-   <!-- <LinearLayout
-        android:orientation="horizontal"
+    <RelativeLayout
+        android:id="@+id/relativeLayout1"
         android:layout_width="match_parent"
-        android:layout_height="50dp"
-        android:id="@+id/titleLayout"
-        android:weightSum="1"
+        android:layout_height="48dp"
         android:background="@color/custom_theme_color"
-        android:layout_alignParentStart="true">
+        android:orientation="vertical" >
 
-        <ImageView
-            android:layout_width="0dp"
-            android:layout_height="25dp"
-            android:id="@+id/imageView"
-            android:src="@drawable/icon"
-            android:layout_gravity="left"
-            android:layout_weight="0.25"
-            android:layout_marginLeft="-5dp"
-           />
-        <TextView android:id="@+id/titleText"
-            android:layout_width="0dp"
+        <TextView
+            android:id="@+id/title"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="0.75"
-            android:text="@string/title"
-            android:textAppearance="?android:attr/textAppearanceLarge"
-            android:layout_gravity="center_vertical"
-           />
-
-    </LinearLayout>-->
-
-
-
-
-<!--
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Launch Gallery"
-        android:id="@+id/galleryButton"
-        android:layout_alignTop="@+id/button"
-        android:layout_alignParentEnd="true" />-->
-
+            android:layout_alignParentLeft="true"
+            android:layout_centerVertical="true"
+            android:layout_margin="10dp"
+            android:textColor="@android:color/white"
+            android:lines="1"
+            android:text="@string/app_name"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            />
+        </RelativeLayout>
     <ListView
         android:id="@+id/documentListView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_above="@+id/bottomLayout"
+        android:layout_below="@+id/relativeLayout1"
         android:layout_centerHorizontal="true">
     </ListView>
 

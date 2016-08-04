@@ -1,5 +1,7 @@
 package com.android.mycamera.cameraapplication.adapter;
 
+
+
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.util.Log;
@@ -26,16 +28,16 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 ;import com.android.mycamera.cameraapplication.R;
-import com.android.mycamera.cameraapplication.dataobjects.Document;
+import com.android.mycamera.cameraapplication.dataobjects.MyDocument;
 import com.android.mycamera.cameraapplication.util.MyCameraApplicationUtil;
 
 public class ListAdapter extends BaseAdapter {
     private Context mContext;
-    private ArrayList<Document> documentList  = new ArrayList<Document>();
-    public ArrayList<Document> getDocumentList() {
+    private ArrayList<MyDocument> documentList  = new ArrayList<MyDocument>();
+    public ArrayList<MyDocument> getDocumentList() {
         return documentList;
     }
-    public void setDocumentList(ArrayList<Document> documentList) {
+    public void setDocumentList(ArrayList<MyDocument> documentList) {
         this.documentList = documentList;
     }
     public ListAdapter(Context context){
@@ -47,7 +49,7 @@ public class ListAdapter extends BaseAdapter {
     }
 
     @Override
-    public Document getItem(int arg0) {
+    public MyDocument getItem(int arg0) {
 
         return  documentList.get(arg0);
     }
@@ -72,7 +74,7 @@ public class ListAdapter extends BaseAdapter {
         ImageView documentThumbnail = (ImageView) rowView.findViewById(R.id.documentThumbnail);
         TextView pageFormatView = (TextView) rowView.findViewById(R.id.pageFormat);
 
-        Document document = documentList.get(position);
+        MyDocument document = documentList.get(position);
         documentNameView.setText(document.getDocumentName());
         Log.e(MyCameraApplicationUtil.LOG_TAG, "document.getModifiedDate( :" + document.getModifiedDate());
         documentDate.setText(document.getModifiedDate());

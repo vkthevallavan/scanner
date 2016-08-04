@@ -14,14 +14,21 @@ import android.provider.MediaStore;
 import android.util.Log;
 import android.widget.Toast;
 
-import org.w3c.dom.Document;
+import com.itextpdf.text.Image;
+import com.itextpdf.text.PageSize;
+import com.itextpdf.text.pdf.PdfWriter;
+import com.itextpdf.text.Document;
+
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -272,29 +279,65 @@ public class MyCameraApplicationUtil {
             return null;
         }
     }
-    public static void renameDocumentName(String documentName,String newName,Context mContext){
-        File cacheDir = mContext.getExternalCacheDir();
-     //   File fileDir =new File(cacheDir.getAbsolutePath().replace("cache", "Files"));
-        File newDocument = new File(cacheDir,newName);
-        newDocument.mkdir();
-        newDocument.setReadable(true,true);
-        newDocument.setWritable(true,true);
-        File existingDocument = new File(cacheDir,documentName);
-        Log.i(LOG_TAG,"renaming... "+existingDocument.renameTo(newDocument));
-	/*rename external document*/
-      //  File externalCacheDir = XIPSGlobalVariables.externalCacheDir;
-        //File externalFileDir =new File(externalCacheDir.getAbsolutePath().replace("cache", "Files"));
-       /* File newExternalDocument = new File(externalFileDir,newName);
-        newExternalDocument.mkdir();
-        newDocument.setReadable(true,true);
-        newDocument.setWritable(true,true);*/
-       // File existingExternalDocument = new File(externalFileDir,documentName);
-     //   Log.i(LOG_TAG,"renaming... "+existingExternalDocument.renameTo(newExternalDocument));
 
+    public static File convertToPdf(File folder) {
+        Document document = new Document(PageSize.A2);
+        String output ="capture.pdf";
+        File outputFile = new File(folder,output);
 
-
-
+        List<String> inputFiles = getImageNames(folder);
+        try {
+            FileOutputStream fos = new FileOutputStream(outputFile.getAbsolutePath());
+            PdfWriter writer = PdfWriter.getInstance(document, fos);
+            writer.open();
+            document.open();
+            for (String s : inputFiles) {
+                Log.d(LOG_TAG,"image instance: "+folder.getAbsolutePath() +"/"+ s);
+                document.add(Image.getInstance(folder.getAbsolutePath() + "/" + s));
+            }
+            document.close();
+            writer.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return outputFile;
     }
 
+    public static List<String> getImageNames(File folder) {
+        File[] listOfFiles = folder.listFiles();
+        List<String> nameList = new ArrayList<String>();
+        for (File file : listOfFiles) {
+            if (file.isFile()) {
+                String fileName = file.getName();
+                Log.d(LOG_TAG,"File name :"+fileName);
+                if (fileName.contains(".JPG") || fileName.contains("jpg")) {
+                    nameList.add(fileName);
+                }
+            }
+        }
+        return nameList;
+    }
 
+    public static List<String> dateRange(File folder) {
+        File[] listOfFiles = folder.listFiles();
+        List<String> nameList = new ArrayList<String>();
+        for (File file : listOfFiles) {
+            if (file.isFile()) {
+                String fileName = file.getName();
+
+            }
+        }
+        return nameList;
+    }
+    public static String getFirstFilePath(String folderPath){
+        File folder = new File(folderPath);
+        List<String> fileNames = new ArrayList<String>();
+        for(File file:folder.listFiles()){
+            if (file.getName().contains(".JPG") || file.getName().contains("jpg")) {
+                fileNames.add(file.getName());
+            }
+        }
+        Collections.sort(fileNames);
+        return folderPath+"/"+fileNames.get(0);
+    }
 }
