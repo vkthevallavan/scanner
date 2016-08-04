@@ -1,6 +1,8 @@
 package com.android.mycamera.cameraapplication;
 
 
+import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 
@@ -8,6 +10,9 @@ import android.provider.MediaStore;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.ContextMenu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ImageView;
@@ -16,7 +21,7 @@ import android.widget.ListView;
 import android.widget.Toast;
 
 import com.android.mycamera.cameraapplication.adapter.ListAdapter;
-import com.android.mycamera.cameraapplication.dataobjects.Document;
+import com.android.mycamera.cameraapplication.dataobjects.MyDocument;
 import com.android.mycamera.cameraapplication.util.MyCameraApplicationUtil;
 
 import java.io.File;
@@ -24,12 +29,15 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 
-public class MainActivity extends AppCompatActivity {
+
+
+
+public class MainActivity extends Activity {
 
     private static final int CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE = 100;
     private static final int ANDROID_GALLERY_ACTIVITY = 101;
@@ -38,6 +46,8 @@ public class MainActivity extends AppCompatActivity {
 
     private ListView documentListView;
     private ListAdapter listAdapter;
+
+    private ArrayList<MyDocument> documents = new ArrayList<MyDocument>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,19 +75,6 @@ public class MainActivity extends AppCompatActivity {
         });
 
 
-
-       // splashscreen = (ImageView) findViewById(R.id.splashscreen);
-
-        /*new Handler().postDelayed(new Runnable() {
-            @Override
-            public void run() {
-	                *//* Create an Intent that will start the Menu-Activity. *//*
-                showDocuments();
-                // SplashActivity.this.finish();
-            }
-        }, 5000);*/
-
-
         documentListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
             @Override
@@ -92,13 +89,71 @@ public class MainActivity extends AppCompatActivity {
                 Log.i(LOG_TAG, "Full Document Path:  " + fullDocPath);
 
 
-                launchThumbnailView(2, fullDocPath);
+                launchThumbnailView(2, documentName);
             }
         });
 
-
+        registerForContextMenu(documentListView);
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        getAllStoredDocuments();
+    }
+
+    @Override
+    public void onCreateContextMenu(ContextMenu menu, View v,
+                                    ContextMenu.ContextMenuInfo menuInfo) {
+        super.onCreateContextMenu(menu, v, menuInfo);
+
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.delete_context, menu);
+    }
+    @Override
+    public boolean onContextItemSelected(MenuItem item) {
+        AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
+
+        MyDocument document = (MyDocument) listAdapter.getItem((int) info.id);
+        String documentName = document.getDocumentName();
+
+
+        switch (item.getItemId()) {
+
+            case R.id.deleteDoc:
+                deleteDocument(documentName);
+                return true;
+            default:
+                return super.onContextItemSelected(item);
+        }
+    }
+
+    private void deleteDocument(String documentName) {
+     //   File fileDir =  getApplicationContext().getDir("files", Context.MODE_PRIVATE);
+        File documentDir = new File(getExternalCacheDir(),documentName);
+        Log.i(LOG_TAG,"documen dir path "+documentDir.getAbsolutePath());
+        Log.i(LOG_TAG,"document Dir before "+documentDir.exists());
+        deleteDirectory(documentDir);
+        documentDir.delete();
+
+        MyDocument doc = new MyDocument();
+        doc.setDocumentName(documentName);
+        documents.remove(doc);
+        getAllStoredDocuments();
+    }
+    public void deleteDirectory(File directory){
+        File[] files= directory.listFiles();
+        for(File file: files){
+            if(file.isDirectory()){
+                deleteDirectory(file);
+            }
+            if(file.isFile()){
+                file.delete();
+            }
+        }
+        directory.delete();
+
+    }
     private void launchThumbnailView(int keyValue, String documentPath) {
 
         Intent intent = new Intent(getApplicationContext(), ImageGridViewActivity.class);
@@ -109,7 +164,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void getAllStoredDocuments(){
 
-        ArrayList<Document> documents = new ArrayList<Document>();
+        ArrayList<MyDocument> documents = new ArrayList<MyDocument>();
         File sourceDirectory = getExternalCacheDir();
         if (!sourceDirectory.exists()) {
             Log.e(LOG_TAG,"Unable to read directory ");
@@ -119,18 +174,24 @@ public class MainActivity extends AppCompatActivity {
             File[] files = sourceDirectory.listFiles();
             int id = 1;
 
+
             for (File file : files) {
 
-                Log.i(LOG_TAG,"file get path "+file.getAbsolutePath());
+                Log.i(LOG_TAG, "file get path " + file.getAbsolutePath());
                 if(file.isDirectory()){
-                    Document doc = new Document();
+                    MyDocument doc = new MyDocument();
                     doc.setDocumentName(file.getName());
                     doc.setId(id);
 
                     SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy HH:mm");
                     String modifiedDate = sdf.format(file.lastModified());
                     Log.d(LOG_TAG, "After Format : " + modifiedDate);
+                    try {
+                        doc.setDateModified(sdf.parse(modifiedDate));
+                    }
+                    catch(ParseException e){
 
+                    }
                     doc.setModifiedDate(modifiedDate);
 				/*find files count in original folder and set to document object*/
                     if(file.listFiles() != null) {
@@ -141,7 +202,9 @@ public class MainActivity extends AppCompatActivity {
                     else{
                         doc.setNumberOfPages(0);
                     }
-				/*get external document, check share file format and set to document object*/
+                    String firstFilePath = MyCameraApplicationUtil.getFirstFilePath(file.getAbsolutePath());
+                    doc.setThumbnailPath(firstFilePath);
+
 
 
 
@@ -155,7 +218,7 @@ public class MainActivity extends AppCompatActivity {
         }
         Collections.sort(documents);
 
-        for (Document doc : documents) {
+        for (MyDocument doc : documents) {
             Log.i(LOG_TAG, "doc date in order " + doc.getDocumentName());
         }
 
@@ -194,7 +257,7 @@ public class MainActivity extends AppCompatActivity {
         switch (requestCode) {
             case CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE:
 
-
+                getAllStoredDocuments();
                 break;
             case ANDROID_GALLERY_ACTIVITY:
 

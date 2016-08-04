@@ -2,22 +2,23 @@ package com.android.mycamera.cameraapplication;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.app.Dialog;
-import android.content.Context;
+
+import android.app.ProgressDialog;
 import android.content.Intent;
-import android.content.SharedPreferences;
+
 import android.database.Cursor;
 import android.graphics.Bitmap;
+
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
-import android.preference.PreferenceManager;
+
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.support.v4.util.LruCache;
-import android.text.Editable;
+
 import android.text.InputType;
 import android.util.Log;
 import android.view.Gravity;
@@ -45,32 +46,22 @@ import com.android.mycamera.cameraapplication.dataobjects.GridObject;
 import com.android.mycamera.cameraapplication.util.MyCameraApplicationConstants;
 import com.android.mycamera.cameraapplication.util.MyCameraApplicationUtil;
 
-import org.xml.sax.SAXException;
-
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.TransformerException;
+import java.io.IOException;
+
+import java.util.ArrayList;
+
 
 
 public class ImageGridViewActivity extends Activity implements View.OnClickListener {
 
     private static final int CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE = 100;
     private static final int ANDROID_GALLERY_ACTIVITY = 101;
+    private static final int SHARE_ACTIVITY = 102;
 
     private static LruCache<String, Bitmap> mMemoryCache;
 
@@ -78,11 +69,12 @@ public class ImageGridViewActivity extends Activity implements View.OnClickListe
     private ProgressBar displayProgress;
     private ImageAdapter imageAdapter;
     private GridView gridview;
-    private ImageView shareButton,cameraButton,galleryButton,menuIcon;
+    private ImageView shareButton,cameraButton,galleryButton,deleteBtn;
     private static EditText renameText;
     private TextView documentTitle;
 
     public static final String LOG_TAG = "MyCameraAppLog";
+    ProgressDialog progress;
 
     public static void addBitmapToMemoryCache(String key, Bitmap bitmap) {
         if (getBitmapFromMemCache(key) == null) {
@@ -112,8 +104,6 @@ public class ImageGridViewActivity extends Activity implements View.OnClickListe
         // Use 1/8th of the available memory for this memory cache.
         final int cacheSize = maxMemory / 8;
         mMemoryCache = new LruCache<String, Bitmap>(cacheSize);
-
-
 
         this.cachePath = ((Environment.getExternalStorageState() == Environment.MEDIA_MOUNTED) || !Environment
                 .isExternalStorageRemovable()) ? getExternalCacheDir()
@@ -148,33 +138,11 @@ public class ImageGridViewActivity extends Activity implements View.OnClickListe
 
         cameraButton.setOnClickListener(this);
         galleryButton.setOnClickListener(this);
-
-
-       /* cameraButton.setOnTouchListener(new View.OnTouchListener() {
-
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                v.setBackgroundColor(Color.GRAY);
-                return false;
-            }
-        });
-
-        galleryButton.setOnTouchListener(new View.OnTouchListener() {
-
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                v.setBackgroundColor(Color.GRAY);
-                return false;
-            }
-        });
-
-*/
-
-
         shareButton.setOnClickListener(this);
 
-        menuIcon = (ImageView) findViewById(R.id.menuBtn);
-        menuIcon.setOnClickListener(this);
+
+        deleteBtn = (ImageView) findViewById(R.id.deleteBtn);
+        deleteBtn.setOnClickListener(this);
         renameText = (EditText) findViewById(R.id.renameText);
         documentTitle = (TextView) findViewById(R.id.documentTitle);
         documentTitle.setOnLongClickListener(new View.OnLongClickListener() {
@@ -350,6 +318,14 @@ public class ImageGridViewActivity extends Activity implements View.OnClickListe
                 // launchThumbnailView(1);
                 launchGallery();
                 break;
+            case R.id.shareButton:
+                v.setBackgroundColor(Color.GRAY);
+                sharePdf();
+
+                break;
+            case R.id.deleteBtn:
+                deleteSelectedImages();
+                break;
 
             default:
                 break;
@@ -357,14 +333,46 @@ public class ImageGridViewActivity extends Activity implements View.OnClickListe
 
     }
 
+    public File generatePdf(String documentName){
+        progress = ProgressDialog.show(this, "Loading",
+                "Generating PDF ..", true);
+        File document = new File(getExternalCacheDir(),documentName);
+        String filePath = document.getAbsolutePath();
+        Log.d(LOG_TAG, "file path: " + filePath);
+        return MyCameraApplicationUtil.convertToPdf(document);
+    }
+    public void deleteSelectedImages() {
+        Log.i(LOG_TAG, "MyCameraApplicationConstants.documentPath " + MyCameraApplicationConstants.documentName);
+        ArrayList<String> selectedItems = imageAdapter.getCheckedItems();
+        Log.i("Delete", "selected items " + selectedItems);
+        for (int index = selectedItems.size() - 1; index >= 0; index--) {
+            Log.i("Delete", "selected Item:: " + selectedItems.get(index));
+            String imagePath = selectedItems.get(index);
+            if (null != imagePath) {
+                Log.d(LOG_TAG,"image path: "+imagePath);
+                File file = new File(imagePath);
+                boolean deleteStatus = file.delete();
+                Log.d(LOG_TAG,"image path delete status : "+deleteStatus);
+                imageAdapter.unCheckedItems();
+
+            }
+            showThumbnailView(MyCameraApplicationConstants.documentName);
+
+        }
+    }
 
 
-    public void showThumbnailView(String documentPath) {
-        Log.i(LOG_TAG, "documentPath in grid activity  " + documentPath);
+
+    public void showThumbnailView(String documentName) {
+        Log.i(LOG_TAG, "documentPath in grid activity  " + documentName);
         // imageList = fetchAllImagesFromFolder(documentPath);
 
         ArrayList<GridObject> myObjects = new ArrayList<GridObject>();
-        File documentDir = new File(documentPath);
+
+        File cacheDir = getApplicationContext().getExternalCacheDir();
+
+        File documentDir = new File(cacheDir,documentName);
+        Log.d(LOG_TAG,"Doc path: "+documentDir.getAbsolutePath());
         Log.d(LOG_TAG,"Doc name: "+documentDir.getName());
         MyCameraApplicationConstants.documentName = documentDir.getName();
         documentTitle.setText(documentDir.getName());
@@ -409,39 +417,6 @@ public class ImageGridViewActivity extends Activity implements View.OnClickListe
         return pixels;
     }
 
-    private String findDocumentName(String directoryPath) {
-
-        String path = directoryPath.replace("/", "_/");
-        String[] pathArray = path.split("_/");
-        String documentName = pathArray[pathArray.length - 1];
-        return documentName;
-    }
-
-    public Bitmap getResizedBitmap(Bitmap bm, int newHeight, int newWidth) {
-        Log.i("Image gridview", "get size bitmap ");
-        int width = bm.getWidth();
-
-        int height = bm.getHeight();
-
-        float scaleWidth = ((float) newWidth) / width;
-
-        float scaleHeight = ((float) newHeight) / height;
-
-        // create a matrix for the manipulation
-
-        Matrix matrix = new Matrix();
-
-        // resize the bit map
-
-        matrix.postScale(scaleWidth, scaleHeight);
-
-        // recreate the new Bitmap
-        Log.i("Image gridview", "scaled width " + scaleWidth + " height " + scaleHeight);
-        Bitmap resizedBitmap = Bitmap.createBitmap(bm, 0, 0, width, height, matrix, false);
-
-        return resizedBitmap;
-
-    }
 
 
     private void launchCamera(){
@@ -454,7 +429,8 @@ public class ImageGridViewActivity extends Activity implements View.OnClickListe
         intent.putExtra(MediaStore.EXTRA_OUTPUT, fileUri); // set the image file name
         Log.d(LOG_TAG, "Media URI: " + fileUri);
         // start the image capture Intent
-        Log.d(LOG_TAG,"Doc name: "+MyCameraApplicationConstants.documentName);
+        Log.d(LOG_TAG,"Debugging Doc name: "+MyCameraApplicationConstants.documentName);
+        intent.putExtra("docName", MyCameraApplicationConstants.documentName);
         startActivityForResult(intent, CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE);
 
     }
@@ -462,7 +438,7 @@ public class ImageGridViewActivity extends Activity implements View.OnClickListe
     public void launchGallery() {
         Intent galleryIntent = new Intent();
         galleryIntent.setType("image/*");
-
+        galleryIntent.putExtra("docName", MyCameraApplicationConstants.documentName);
         galleryIntent.setAction(Intent.ACTION_GET_CONTENT);
         startActivityForResult(
                 Intent.createChooser(galleryIntent, "Select Picture"),
@@ -480,13 +456,21 @@ public class ImageGridViewActivity extends Activity implements View.OnClickListe
         switch (requestCode) {
             case CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE:
                 Log.d(LOG_TAG,"Doc name: "+MyCameraApplicationConstants.documentName+" path:"+MyCameraApplicationConstants.documentPath);
-                showThumbnailView(MyCameraApplicationConstants.documentPath);
+                String docName = getIntent().getStringExtra("docName");
+                Log.d(LOG_TAG,"docname : "+docName);
+              //  MyCameraApplicationConstants.documentName = docName;
+                showThumbnailView(MyCameraApplicationConstants.documentName);
 
                 break;
             case ANDROID_GALLERY_ACTIVITY:
                 File tempFile = null;
+                Log.d(LOG_TAG,"In Gallery, Doc name: "+MyCameraApplicationConstants.documentName);
+                docName = getIntent().getStringExtra("docName");
+                Log.d(LOG_TAG,"Doc name : "+docName);
+                //MyCameraApplicationConstants.documentName = docName;
+
                 Uri imgUri = data.getData();
-                Log.d(LOG_TAG, " prints img URI " + imgUri);
+                Log.d(LOG_TAG, "Debugging prints img URI " + imgUri);
                 String uriString = imgUri.toString();
                 if (uriString.endsWith(".png")) {
                     Toast.makeText(getApplicationContext(), "Application allows only jpeg image", Toast.LENGTH_SHORT).show();
@@ -538,7 +522,7 @@ public class ImageGridViewActivity extends Activity implements View.OnClickListe
                         e.printStackTrace();
                     }
                 }
-                showThumbnailView(MyCameraApplicationConstants.documentPath);
+                showThumbnailView(MyCameraApplicationConstants.documentName);
 
                 break;
 
@@ -616,8 +600,25 @@ public class ImageGridViewActivity extends Activity implements View.OnClickListe
         return testFile;
 
     }
+    public void sharePdf() {
 
+        File pdfFile = generatePdf(MyCameraApplicationConstants.documentName);
+        if(pdfFile != null) {
+            progress.dismiss();
+            shareButton.setBackgroundColor(Color.parseColor("#639ED8"));
+            Intent shareIntent = new Intent(
+                    android.content.Intent.ACTION_SEND_MULTIPLE);
+            shareIntent.putExtra(android.content.Intent.EXTRA_SUBJECT,
+                    "My PDF");
 
+            ArrayList<Uri> uris = new ArrayList<Uri>();
+            shareIntent.setType("application/pdf");
+            uris.add(Uri.fromFile(pdfFile));
 
+            shareIntent.putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris);
+            startActivityForResult(Intent.createChooser(shareIntent, "Share options"), SHARE_ACTIVITY);
 
+        }
+
+    }
 }
