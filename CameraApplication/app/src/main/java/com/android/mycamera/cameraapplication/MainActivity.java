@@ -194,19 +194,16 @@ public class MainActivity extends Activity {
                     }
                     doc.setModifiedDate(modifiedDate);
 				/*find files count in original folder and set to document object*/
-                    if(file.listFiles() != null) {
+                    if(file.listFiles() != null && file.listFiles().length > 0) {
                         int filesCount = file.listFiles().length;
                         Log.i(LOG_TAG, "filesCount " + filesCount);
                         doc.setNumberOfPages(filesCount);
+                        String firstFilePath = MyCameraApplicationUtil.getFirstFilePath(file.getAbsolutePath());
+                        doc.setThumbnailPath(firstFilePath);
                     }
                     else{
                         doc.setNumberOfPages(0);
                     }
-                    String firstFilePath = MyCameraApplicationUtil.getFirstFilePath(file.getAbsolutePath());
-                    doc.setThumbnailPath(firstFilePath);
-
-
-
 
                     if(!documents.contains(doc)){
                         documents.add(doc);
