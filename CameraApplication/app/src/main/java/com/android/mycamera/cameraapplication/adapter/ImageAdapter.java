@@ -67,7 +67,7 @@ public class ImageAdapter extends BaseAdapter {
      */
     @Override
     public Object getItem(int arg0) {
-        return  imageList.get(arg0); //mThumbIds[arg0];
+        return  imageList.get(arg0);
     }
 
     /* (non-Javadoc)
@@ -158,9 +158,17 @@ public class ImageAdapter extends BaseAdapter {
         ImageView imageView = (ImageView) grid.findViewById(R.id.image);
         RelativeLayout imageLayout = (RelativeLayout) grid.findViewById(R.id.imageLayout);
 
+        if (gridObject.getPath().contains(".PDF") || gridObject.getPath().contains("pdf")) {
+            Log.d(LOG_TAG,"pathe"+gridObject.getPath());
+            imageView.setImageResource(R.drawable.icon);
+
+
+        }
+
         imageLayout.setTag(position);
         mCheckBox.setChecked(mSparseBooleanArray.get(position));
         mCheckBox.setTag(gridObject.getPath());
+
 
         loadBitmap(gridObject.getPath(), imageView,width);
         return grid;

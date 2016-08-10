@@ -37,7 +37,7 @@
     <LinearLayout
         android:id="@+id/bottomLayout"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" android:weightSum="3"
+        android:layout_height="wrap_content" android:weightSum="2"
         android:layout_alignParentBottom="true"
         android:background="@color/custom_theme_color" >
 
@@ -58,11 +58,5 @@
         android:src="@android:drawable/ic_menu_gallery" />
 
 
-    <ImageView
-        android:id="@+id/infoBtn"
-        android:layout_width="wrap_content"
-        android:layout_height="50dp"
-        android:layout_weight="1"
-        android:src="@android:drawable/ic_menu_info_details" />
     </LinearLayout>
 </RelativeLayout>

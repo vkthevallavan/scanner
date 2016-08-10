@@ -39,9 +39,7 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
-/**
- * Created by jeyasri on 7/23/2016.
- */
+
 public class MyCameraApplicationUtil {
 
     private Uri fileUri;
